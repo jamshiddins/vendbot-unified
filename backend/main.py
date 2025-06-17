@@ -7,6 +7,7 @@ sys.path.append(str(Path(__file__).parent))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import uvicorn
 
@@ -48,7 +49,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Подключаем маршруты
+# 📁 Монтируем статические файлы
+app.mount(
+    "/photos",
+    StaticFiles(directory=settings.UPLOAD_PATH / "photos"),
+    name="photos"
+)
+
+# 📦 Подключаем маршруты
 app.include_router(api_router, prefix="/api/v2")
 
 @app.get("/")
