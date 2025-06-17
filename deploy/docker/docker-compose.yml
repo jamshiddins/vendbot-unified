@@ -1,0 +1,49 @@
+# deploy/docker/docker-compose.yml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: vendbot
+      POSTGRES_USER: vendbot
+      POSTGRES_PASSWORD: vendbot123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: 
+      context: ../../backend
+      dockerfile: ../deploy/docker/backend.dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://vendbot:vendbot123@postgres:5432/vendbot
+      REDIS_URL: redis://redis:6379
+      BOT_TOKEN: ${BOT_TOKEN}
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../../backend:/app
+
+  web:
+    build:
+      context: ../../web/dashboard
+      dockerfile: ../../deploy/docker/web.dockerfile
+    environment:
+      REACT_APP_API_URL: http://backend:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

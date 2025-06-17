@@ -1,0 +1,38 @@
+### 🔧 ШАГ 3: Backend структура
+
+**3.1. Создайте `backend/requirements.txt`:**
+
+```txt
+# Core
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.0
+
+# Database
+sqlalchemy==2.0.25
+alembic==1.13.1
+asyncpg==0.29.0
+
+# Telegram Bot
+aiogram==3.3.0
+aiohttp==3.9.1
+
+# Redis
+redis==5.0.1
+aiocache==0.12.2
+
+# Utils
+pydantic==2.5.3
+pydantic-settings==2.1.0
+Pillow==10.2.0
+qrcode[pil]==7.4.2
+httpx==0.26.0
+
+# Development
+pytest==7.4.4
+pytest-asyncio==0.23.3
+black==23.12.1
+ruff==0.1.11

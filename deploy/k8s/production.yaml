@@ -1,0 +1,47 @@
+# deploy/k8s/production.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vendbot-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: vendbot-backend
+  template:
+    metadata:
+      labels:
+        app: vendbot-backend
+    spec:
+      containers:
+      - name: backend
+        image: vendbot/backend:latest
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: vendbot-secrets
+              key: database-url
+        - name: REDIS_URL
+          value: redis://vendbot-redis:6379
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vendbot-backend
+spec:
+  selector:
+    app: vendbot-backend
+  ports:
+  - port: 80
+    targetPort: 8000
+  type: LoadBalancer
