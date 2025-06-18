@@ -17,21 +17,13 @@ class Settings:
         if not db_url:
             raise ValueError("DATABASE_URL environment variable is required")
             
-        # Для Supabase pooler используем psycopg2
-        if "pooler.supabase.com" in db_url:
-            # Заменяем префикс для использования с psycopg2
-            if db_url.startswith("postgresql://"):
-                self.database_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
-            elif db_url.startswith("postgresql+asyncpg://"):
-                self.database_url = db_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
-            else:
-                self.database_url = db_url
-        else:
-            # Для других БД используем asyncpg
-            if db_url.startswith("postgresql://"):
-                self.database_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-            else:
-                self.database_url = db_url
+        # Всегда используем asyncpg
+        if db_url.startswith("postgresql://"):
+            db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        elif not db_url.startswith("postgresql+asyncpg://"):
+            db_url = f"postgresql+asyncpg://{db_url.split('://', 1)[1]}"
+            
+        self.database_url = db_url
         
         # Redis
         self.redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")

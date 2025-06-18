@@ -8,11 +8,20 @@ Base = declarative_base()
 # Отладка - посмотрим какой URL используется
 print(f"[DATABASE] Connecting to: {settings.database_url[:50]}...")
 
-# Создаем движок БД
+# Создаем движок БД с параметрами для Supabase
 engine = create_async_engine(
     settings.database_url,
     echo=True,  # Включаем логирование SQL
-    pool_pre_ping=True
+    pool_pre_ping=True,
+    # Параметры для работы с Supabase pooler
+    connect_args={
+        "server_settings": {
+            "application_name": "vendbot",
+            "jit": "off"
+        },
+        "command_timeout": 60,
+        "ssl": "require"
+    }
 )
 
 # Создаем фабрику сессий
