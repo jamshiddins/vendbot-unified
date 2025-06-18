@@ -4,24 +4,44 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Bot settings
-    bot_token: str = os.getenv("BOT_TOKEN", "")
-    admin_ids: List[int] = [42283329]
+    bot_token: str = ""
+    admin_ids: List[int] = []
     
     # Database
     database_url: str = ""
     
     # Redis
-    redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379")
+    redis_url: str = ""
     
     # JWT для API (опционально)
-    jwt_secret_key: Optional[str] = os.getenv("JWT_SECRET_KEY", None)
+    jwt_secret_key: Optional[str] = None
     
     # Other settings
-    log_level: str = os.getenv("LOG_LEVEL", "INFO")
-    timezone: str = os.getenv("TZ", "Asia/Tashkent")
+    log_level: str = "INFO"
+    timezone: str = "Asia/Tashkent"
     
     def __init__(self):
-        super().__init__()
+        # Сначала заполняем значения из переменных окружения
+        self.bot_token = os.getenv("BOT_TOKEN", "")
+        
+        # Парсим ADMIN_IDS - может быть число или список через запятую
+        admin_ids_str = os.getenv("ADMIN_IDS", "42283329")
+        if admin_ids_str:
+            # Разбиваем по запятой и конвертируем в int
+            self.admin_ids = [int(id.strip()) for id in admin_ids_str.split(",")]
+        else:
+            self.admin_ids = [42283329]  # По умолчанию
+            
+        # Redis URL
+        self.redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+        
+        # JWT (опционально)
+        self.jwt_secret_key = os.getenv("JWT_SECRET_KEY", None)
+        
+        # Другие настройки
+        self.log_level = os.getenv("LOG_LEVEL", "INFO")
+        self.timezone = os.getenv("TZ", "Asia/Tashkent")
+        
         # Обработка DATABASE_URL от Railway
         db_url = os.getenv("DATABASE_URL", "")
         if db_url.startswith("postgresql://"):
@@ -32,8 +52,12 @@ class Settings(BaseSettings):
         # Проверка bot_token
         if not self.bot_token:
             raise ValueError("BOT_TOKEN environment variable is required")
+        
+        # Вызываем родительский init БЕЗ валидации
+        super().__init__(_env_file=None)
     
     class Config:
-        case_sensitive = False
+        validate_assignment = False
+        arbitrary_types_allowed = True
 
 settings = Settings()
