@@ -8,19 +8,21 @@ Base = declarative_base()
 # Отладка - посмотрим какой URL используется
 print(f"[DATABASE] Connecting to: {settings.database_url[:50]}...")
 
-# Создаем движок БД с параметрами для Supabase
+# Создаем движок БД с параметрами для Supabase pgbouncer
 engine = create_async_engine(
     settings.database_url,
     echo=True,  # Включаем логирование SQL
     pool_pre_ping=True,
-    # Параметры для работы с Supabase pooler
+    # ВАЖНО: Отключаем prepared statements для pgbouncer
     connect_args={
         "server_settings": {
             "application_name": "vendbot",
             "jit": "off"
         },
         "command_timeout": 60,
-        "ssl": "require"
+        "ssl": "require",
+        # Отключаем кэш prepared statements
+        "statement_cache_size": 0,
     }
 )
 
