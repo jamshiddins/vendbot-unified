@@ -5,10 +5,14 @@ from core.config import settings
 # Создаем базовый класс для моделей
 Base = declarative_base()
 
+# Отладка - посмотрим какой URL используется
+print(f"[DATABASE] Connecting to: {settings.database_url[:50]}...")
+
 # Создаем движок БД
 engine = create_async_engine(
-    settings.database_url,  # Исправлено с DATABASE_URL на database_url
-    echo=False
+    settings.database_url,
+    echo=True,  # Включаем логирование SQL
+    pool_pre_ping=True
 )
 
 # Создаем фабрику сессий
