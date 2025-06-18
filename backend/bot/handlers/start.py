@@ -155,3 +155,4 @@ async def set_test_role(callback: CallbackQuery, session: AsyncSession):
         reply_markup=keyboard,
         parse_mode="HTML"
     )
+

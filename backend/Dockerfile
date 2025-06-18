@@ -2,11 +2,24 @@
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
+# Установка системных зависимостей
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+# Копирование файлов из backend директории
+COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Копирование всего кода backend
+COPY backend/ ./backend/
 
+# Переход в рабочую директорию
+WORKDIR /app/backend
+
+# Railway использует переменную PORT (но наш бот её не использует)
+ENV PYTHONPATH=/app/backend
+
+# Команда запуска
 CMD ["python", "run_bot.py"]
