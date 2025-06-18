@@ -1,8 +1,3 @@
-### 🔧 ШАГ 3: Backend структура
-
-**3.1. Создайте `backend/requirements.txt`:**
-
-```txt
 # Core
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
@@ -30,6 +25,9 @@ pydantic-settings==2.1.0
 Pillow==10.2.0
 qrcode[pil]==7.4.2
 httpx==0.26.0
+
+# WebSocket
+websockets==12.0
 
 # Development
 pytest==7.4.4

@@ -1,9 +1,14 @@
+"""Base database models"""
+from sqlalchemy import MetaData
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, DateTime, func
+from sqlalchemy import Column, Integer, DateTime
+from sqlalchemy.sql import func
 
-Base = declarative_base()
+# Создаем базовую модель без conflicting metadata
+metadata = MetaData()
+Base = declarative_base(metadata=metadata)
 
 class TimestampMixin:
-    """Миксин для добавления временных меток"""
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+    """Mixin для добавления timestamp полей"""
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)

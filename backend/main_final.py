@@ -11,7 +11,7 @@ from aiogram.types import Message
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from threading import Thread
+from concurrent.futures import ThreadPoolExecutor
 import sys
 
 # Загружаем конфигурацию
@@ -55,7 +55,7 @@ app = FastAPI(
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # В продакшене ограничить
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -123,15 +123,22 @@ async def info():
         }
     }
 
-# Telegram бот
-bot = Bot(token=settings.BOT_TOKEN)
-dp = Dispatcher()
+# Глобальные переменные для бота
+bot = None
+dp = None
 
-@dp.message(Command("start"))
-async def cmd_start(message: Message):
-    user_name = message.from_user.full_name or message.from_user.username or "Пользователь"
+def setup_bot():
+    """Настройка Telegram бота"""
+    global bot, dp
     
-    text = f"""
+    bot = Bot(token=settings.BOT_TOKEN)
+    dp = Dispatcher()
+    
+    @dp.message(Command("start"))
+    async def cmd_start(message: Message):
+        user_name = message.from_user.full_name or message.from_user.username or "Пользователь"
+        
+        text = f"""
  <b>Добро пожаловать в VendBot!</b>
 
 Привет, {user_name}!
@@ -148,11 +155,11 @@ async def cmd_start(message: Message):
 
 Для начала работы выберите /menu
 """
-    await message.answer(text, parse_mode="HTML")
+        await message.answer(text, parse_mode="HTML")
 
-@dp.message(Command("help"))
-async def cmd_help(message: Message):
-    help_text = """
+    @dp.message(Command("help"))
+    async def cmd_help(message: Message):
+        help_text = """
 <b> Справочная система VendBot</b>
 
 <b> Основные команды:</b>
@@ -181,11 +188,11 @@ async def cmd_help(message: Message):
 
 <b> Поддержка:</b> @vendbot_support
 """
-    await message.answer(help_text, parse_mode="HTML")
+        await message.answer(help_text, parse_mode="HTML")
 
-@dp.message(Command("status"))
-async def cmd_status(message: Message):
-    status_text = f"""
+    @dp.message(Command("status"))
+    async def cmd_status(message: Message):
+        status_text = f"""
 <b> Статус системы VendBot</b>
 
 <b>ℹ Информация:</b>
@@ -210,11 +217,11 @@ async def cmd_status(message: Message):
 <b> Документация API:</b>
 <code>http://localhost:8000/docs</code>
 """
-    await message.answer(status_text, parse_mode="HTML")
+        await message.answer(status_text, parse_mode="HTML")
 
-@dp.message(Command("menu"))
-async def cmd_menu(message: Message):
-    menu_text = """
+    @dp.message(Command("menu"))
+    async def cmd_menu(message: Message):
+        menu_text = """
 <b> Главное меню VendBot</b>
 
 Выберите вашу роль для доступа к функциям:
@@ -248,11 +255,11 @@ async def cmd_menu(message: Message):
 /stats - Статистика
 /settings - Настройки
 """
-    await message.answer(menu_text, parse_mode="HTML")
+        await message.answer(menu_text, parse_mode="HTML")
 
-@dp.message(Command("about"))
-async def cmd_about(message: Message):
-    about_text = f"""
+    @dp.message(Command("about"))
+    async def cmd_about(message: Message):
+        about_text = f"""
 <b> О системе VendBot</b>
 
 <b>VendBot</b> - это современная система управления сетью вендинговых автоматов корпоративного уровня.
@@ -287,11 +294,11 @@ VendBot Team  2024
 
 <i>Версия {settings.APP_VERSION} | {datetime.now().strftime('%Y')}</i>
 """
-    await message.answer(about_text, parse_mode="HTML")
+        await message.answer(about_text, parse_mode="HTML")
 
-@dp.message(Command("stats"))
-async def cmd_stats(message: Message):
-    stats_text = """
+    @dp.message(Command("stats"))
+    async def cmd_stats(message: Message):
+        stats_text = """
 <b> Статистика системы VendBot</b>
 
 <b> Автоматы:</b>
@@ -329,66 +336,88 @@ async def cmd_stats(message: Message):
 - Топ оператор: Иванов И.И.
 - Топ маршрут: Центральный
 """
-    await message.answer(stats_text, parse_mode="HTML")
+        await message.answer(stats_text, parse_mode="HTML")
 
-@dp.message()
-async def echo_handler(message: Message):
-    """Обработчик всех остальных сообщений"""
-    await message.answer(
-        " Неизвестная команда.\n\n"
-        "Используйте /help для просмотра доступных команд."
-    )
+    @dp.message()
+    async def echo_handler(message: Message):
+        """Обработчик всех остальных сообщений"""
+        await message.answer(
+            " Неизвестная команда.\n\n"
+            "Используйте /help для просмотра доступных команд."
+        )
 
-async def start_telegram_bot():
+    return bot, dp
+
+async def start_bot():
     """Запуск Telegram бота"""
+    bot, dp = setup_bot()
+    
     try:
         bot_info = await bot.get_me()
         logger.info(f" Telegram бот запущен: @{bot_info.username}")
-        await dp.start_polling(bot)
+        
+        # Запускаем polling
+        await dp.start_polling(bot, close_bot_session=True)
+        
     except Exception as e:
         logger.error(f" Ошибка запуска бота: {e}")
+        raise
 
-def run_bot_in_thread():
-    """Запуск бота в отдельном потоке"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+async def run_bot():
+    """Запуск бота в асинхронном режиме"""
     try:
-        loop.run_until_complete(start_telegram_bot())
+        await start_bot()
     except Exception as e:
-        logger.error(f" Критическая ошибка в потоке бота: {e}")
+        logger.error(f" Критическая ошибка бота: {e}")
 
-if __name__ == "__main__":
+def main():
+    """Главная функция приложения"""
     logger.info("="*60)
     logger.info(f" Запуск {settings.APP_NAME} v{settings.APP_VERSION}")
     logger.info(f" Окружение: {settings.ENVIRONMENT}")
     logger.info(f" Debug режим: {settings.DEBUG}")
     logger.info("="*60)
     
-    # Запускаем бота в отдельном потоке
+    # Запускаем бота в фоновом режиме
     logger.info(" Инициализация Telegram бота...")
-    bot_thread = Thread(target=run_bot_in_thread, daemon=True)
-    bot_thread.start()
+    bot_task = asyncio.create_task(run_bot())
     
-    # Небольшая задержка для инициализации бота
-    import time
-    time.sleep(2)
+    # Конфигурация uvicorn
+    config = uvicorn.Config(
+        app,
+        host="0.0.0.0",
+        port=8000,
+        log_level="info",
+        access_log=True,
+        loop="asyncio"
+    )
     
-    # Запускаем FastAPI
+    server = uvicorn.Server(config)
+    
     logger.info(" Запуск Web API...")
     logger.info(" API доступно: http://localhost:8000")
     logger.info(" Документация: http://localhost:8000/docs")
     logger.info(" ReDoc: http://localhost:8000/redoc")
     logger.info("="*60)
     
+    # Запускаем все в одном event loop
+    loop = asyncio.get_event_loop()
     try:
-        uvicorn.run(
-            app,
-            host="0.0.0.0",
-            port=8000,
-            log_level="info",
-            access_log=True
+        loop.run_until_complete(
+            asyncio.gather(
+                server.serve(),
+                bot_task
+            )
         )
     except KeyboardInterrupt:
-        logger.info("\n Остановка по запросу пользователя")
+        logger.info("\n Получен сигнал остановки...")
     finally:
-        logger.info(" VendBot остановлен")
+        logger.info(" Завершение работы VendBot")
+
+if __name__ == "__main__":
+    # Для Windows - исправление ошибки с asyncio
+    if sys.platform == 'win32':
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    
+    # Запускаем приложение
+    main()

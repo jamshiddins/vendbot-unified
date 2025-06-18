@@ -26,3 +26,26 @@ class HopperRemoveStates(StatesGroup):
     select_hopper = State()
     photo_before_remove = State()
     confirm = State()
+
+    # Добавьте к существующим состояниям
+
+class WarehouseReceivingStates(StatesGroup):
+    """Состояния для приемки товара"""
+    select_ingredient = State()
+    enter_quantity = State()
+    enter_invoice_number = State()
+    photo_boxes = State()
+    confirm = State()
+
+class WarehouseIssueStates(StatesGroup):
+    """Состояния для выдачи товара"""
+    select_operator = State()
+    select_items = State()
+    confirm = State()
+
+class InventoryCheckStates(StatesGroup):
+    """Состояния для инвентаризации"""
+    select_ingredient = State()
+    enter_actual_quantity = State()
+    photo_proof = State()
+    confirm = State()

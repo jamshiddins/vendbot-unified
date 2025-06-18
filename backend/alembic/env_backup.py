@@ -1,4 +1,4 @@
-﻿from logging.config import fileConfig
+from logging.config import fileConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
@@ -20,12 +20,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Устанавливаем URL базы данных из настроек
-# Убираем +asyncpg если есть
-database_url = settings.DATABASE_URL
-if "+asyncpg" in database_url:
-    database_url = database_url.replace("+asyncpg", "")
-
-config.set_main_option("sqlalchemy.url", database_url)
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("+asyncpg", ""))
 
 target_metadata = Base.metadata
 
@@ -42,19 +37,15 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 def run_migrations_online() -> None:
-    configuration = config.get_section(config.config_ini_section)
-    configuration['sqlalchemy.url'] = database_url
-    
     connectable = engine_from_config(
-        configuration,
+        config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, 
-            target_metadata=target_metadata
+            connection=connection, target_metadata=target_metadata
         )
 
         with context.begin_transaction():
