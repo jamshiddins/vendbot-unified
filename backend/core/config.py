@@ -1,47 +1,39 @@
-﻿from pydantic_settings import BaseSettings
-from typing import Optional
+﻿import os
+from typing import List, Optional
+from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
+    # Bot settings
+    bot_token: str = os.getenv("BOT_TOKEN", "")
+    admin_ids: List[int] = [42283329]
+    
     # Database
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/vendbot"
-    
-    # Bot
-    bot_token: str
-    webhook_url: Optional[str] = None
-    
-    # JWT
-    jwt_secret_key: str
-    jwt_algorithm: str = "HS256"
-    jwt_access_token_expire_minutes: int = 30
+    database_url: str = ""
     
     # Redis
-    redis_url: str = "redis://localhost:6379"
+    redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379")
     
-    # API
-    api_prefix: str = "/api/v1"
-    api_host: str = "0.0.0.0"
-    api_port: int = 8000
+    # JWT для API (опционально)
+    jwt_secret_key: Optional[str] = os.getenv("JWT_SECRET_KEY", None)
     
-    # App settings
-    debug: bool = True
-    environment: str = "development"
-    log_level: str = "INFO"
+    # Other settings
+    log_level: str = os.getenv("LOG_LEVEL", "INFO")
+    timezone: str = os.getenv("TZ", "Asia/Tashkent")
     
-    # Frontend
-    frontend_url: str = "http://localhost:3000"
-    
-    # Upload
-    upload_dir: str = "./uploads"
-    max_upload_size: int = 10485760
-    
-    # Additional fields (optional)
-    secret_key: Optional[str] = None
-    supabase_url: Optional[str] = None
-    supabase_project_id: Optional[str] = None
+    def __init__(self):
+        super().__init__()
+        # Обработка DATABASE_URL от Railway
+        db_url = os.getenv("DATABASE_URL", "")
+        if db_url.startswith("postgresql://"):
+            self.database_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        else:
+            self.database_url = db_url or "postgresql+asyncpg://postgres:postgres@localhost/vendbot"
+            
+        # Проверка bot_token
+        if not self.bot_token:
+            raise ValueError("BOT_TOKEN environment variable is required")
     
     class Config:
-        env_file = ".env"
         case_sensitive = False
-        extra = "allow"  # Разрешаем дополнительные поля
 
 settings = Settings()
