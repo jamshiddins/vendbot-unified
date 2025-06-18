@@ -10,19 +10,25 @@ print("\n=== Config Check ===")
 from core.config import settings
 print(f"settings.database_url: {settings.database_url[:50]}...")
 
-print("\n=== Database Module Check ===")
-from db.database import engine
-print(f"Engine URL: {engine.url}")
-
 print("\n=== Testing Connection ===")
 import asyncio
+from sqlalchemy import text
+from db.database import engine
 
 async def test():
     try:
         async with engine.connect() as conn:
-            result = await conn.execute("SELECT version()")
+            result = await conn.execute(text("SELECT version()"))
             version = result.scalar()
             print(f" Connected to: {version}")
+            
+            # Проверим таблицы
+            result = await conn.execute(text("SELECT tablename FROM pg_tables WHERE schemaname = 'public'"))
+            tables = result.fetchall()
+            print(f"\n Tables in database: {len(tables)}")
+            for table in tables:
+                print(f"  - {table[0]}")
+                
     except Exception as e:
         print(f" Connection failed: {e}")
         import traceback

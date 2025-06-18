@@ -1,20 +1,33 @@
 ﻿import asyncio
 import sys
-import os
+sys.path.insert(0, '/app/backend')
 
-# Добавляем путь для импорта
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
+from sqlalchemy import text
 from db.database import engine
 from db.models import Base
 
 async def init_db():
+    print(" Инициализация базы данных...")
+    
     try:
+        # Создаем таблицы
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        print(" База данных инициализирована успешно")
+        
+        print(" Таблицы созданы успешно!")
+        
+        # Проверяем созданные таблицы
+        async with engine.connect() as conn:
+            result = await conn.execute(text("SELECT tablename FROM pg_tables WHERE schemaname = 'public'"))
+            tables = result.fetchall()
+            print(f"\n Созданные таблицы ({len(tables)}):")
+            for table in tables:
+                print(f"  - {table[0]}")
+                
     except Exception as e:
-        print(f" Ошибка инициализации БД: {e}")
+        print(f" Ошибка: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
         await engine.dispose()
 
