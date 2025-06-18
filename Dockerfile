@@ -8,14 +8,17 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Копирование только директории backend
-COPY backend/ ./
+# Копирование backend директории
+COPY backend ./backend
 
 # Установка зависимостей
+WORKDIR /app/backend
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Установка PYTHONPATH
-ENV PYTHONPATH=/app
+# Установка переменных окружения
+ENV PYTHONPATH=/app/backend
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Команда запуска
 CMD ["python", "run_bot.py"]
