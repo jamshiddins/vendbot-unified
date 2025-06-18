@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Numeric
+﻿from sqlalchemy import Column, Integer, String, Numeric
 from sqlalchemy.orm import relationship
 from .base import Base, TimestampMixin
 
@@ -15,7 +15,8 @@ class Ingredient(Base, TimestampMixin):
     category = Column(String(50))
     
     # Relationships
-    operations = relationship("HopperOperation", back_populates="ingredient")
+    hoppers = relationship("Hopper", back_populates="ingredient")
     
     def __repr__(self):
         return f"<Ingredient {self.code} - {self.name}>"
+

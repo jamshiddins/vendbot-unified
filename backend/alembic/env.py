@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from core.config import settings
-from db.models.base import Base
+from db.models import Base
 # Импортируем все модели
 from db.models import *
 
@@ -64,3 +64,4 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
+

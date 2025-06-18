@@ -1,42 +1,47 @@
 ﻿from pydantic_settings import BaseSettings
-from typing import List
-import os
+from typing import Optional
 
 class Settings(BaseSettings):
-    # App
-    APP_NAME: str = "VendBot"
-    APP_VERSION: str = "2.0.0"
-    DEBUG: bool = False
-    SECRET_KEY: str
-    
     # Database
-    DATABASE_URL: str
+    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/vendbot"
     
-    # Redis
-    REDIS_URL: str = "redis://localhost:6379"
-    
-    # Telegram
-    BOT_TOKEN: str
-    WEBHOOK_URL: str = ""
-    ENABLE_BOT: bool = True
-    
-    # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:3000"]
-    
-    # Storage
-    STORAGE_TYPE: str = "local"
-    UPLOAD_PATH: str = "./uploads"
+    # Bot
+    bot_token: str
+    webhook_url: Optional[str] = None
     
     # JWT
-    JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRE_MINUTES: int = 1440  # 24 часа
+    jwt_secret_key: str
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 30
+    
+    # Redis
+    redis_url: str = "redis://localhost:6379"
+    
+    # API
+    api_prefix: str = "/api/v1"
+    api_host: str = "0.0.0.0"
+    api_port: int = 8000
+    
+    # App settings
+    debug: bool = True
+    environment: str = "development"
+    log_level: str = "INFO"
+    
+    # Frontend
+    frontend_url: str = "http://localhost:3000"
+    
+    # Upload
+    upload_dir: str = "./uploads"
+    max_upload_size: int = 10485760
+    
+    # Additional fields (optional)
+    secret_key: Optional[str] = None
+    supabase_url: Optional[str] = None
+    supabase_project_id: Optional[str] = None
     
     class Config:
         env_file = ".env"
-        case_sensitive = True
-        extra = "allow"  # ВАЖНО: Разрешаем дополнительные поля
+        case_sensitive = False
+        extra = "allow"  # Разрешаем дополнительные поля
 
 settings = Settings()
-
-# Создаём папку для загрузок если не существует
-os.makedirs(settings.UPLOAD_PATH, exist_ok=True)

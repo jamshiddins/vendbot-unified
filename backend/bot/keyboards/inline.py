@@ -1,69 +1,59 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from typing import List, Optional
-from db.models.asset import Asset, AssetType
-from db.models.ingredient import Ingredient
+﻿from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from db.models import UserRole
 
-def get_hoppers_keyboard(hoppers: List[Asset]) -> InlineKeyboardMarkup:
-    """Клавиатура для выбора бункера"""
-    builder = InlineKeyboardBuilder()
+def get_main_menu(role: UserRole) -> InlineKeyboardMarkup:
+    """Главное меню в зависимости от роли"""
     
-    for hopper in hoppers:
-        builder.button(
-            text=f"📦 {hopper.name} ({hopper.inventory_number})",
-            callback_data=f"hopper:{hopper.id}"
-        )
+    if role == UserRole.ADMIN:
+        keyboard = [
+            [InlineKeyboardButton(text=" Пользователи", callback_data="admin_users")],
+            [InlineKeyboardButton(text=" Автоматы", callback_data="admin_machines")],
+            [InlineKeyboardButton(text=" Статистика", callback_data="admin_stats")],
+            [InlineKeyboardButton(text=" Настройки", callback_data="admin_settings")],
+        ]
+    elif role == UserRole.WAREHOUSE:
+        keyboard = [
+            [InlineKeyboardButton(text=" Остатки", callback_data="warehouse_stock")],
+            [InlineKeyboardButton(text=" Поступление", callback_data="warehouse_receive")],
+            [InlineKeyboardButton(text=" Назначить", callback_data="warehouse_assign")],
+            [InlineKeyboardButton(text=" Возвраты", callback_data="warehouse_returns")],
+        ]
+    elif role == UserRole.OPERATOR:
+        keyboard = [
+            [InlineKeyboardButton(text=" Мои задания", callback_data="operator_tasks")],
+            [InlineKeyboardButton(text=" Мои автоматы", callback_data="operator_machines")],
+            [InlineKeyboardButton(text=" Установить", callback_data="operator_install")],
+            [InlineKeyboardButton(text=" Снять", callback_data="operator_remove")],
+        ]
+    elif role == UserRole.DRIVER:
+        keyboard = [
+            [InlineKeyboardButton(text=" Начать поездку", callback_data="driver_start_trip")],
+            [InlineKeyboardButton(text=" Заправка", callback_data="driver_fuel")],
+            [InlineKeyboardButton(text=" История", callback_data="driver_history")],
+        ]
+    else:
+        keyboard = []
     
-    builder.button(text="❌ Отмена", callback_data="cancel")
-    builder.adjust(1)
-    
-    return builder.as_markup()
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-def get_ingredients_keyboard(ingredients: List[Ingredient]) -> InlineKeyboardMarkup:
-    """Клавиатура для выбора ингредиента"""
-    builder = InlineKeyboardBuilder()
-    
-    for ingredient in ingredients:
-        text = f"{ingredient.name} ({ingredient.current_stock:.1f} {ingredient.unit})"
-        builder.button(
-            text=text,
-            callback_data=f"ingredient:{ingredient.id}"
-        )
-    
-    builder.button(text="❌ Отмена", callback_data="cancel")
-    builder.adjust(1)
-    
-    return builder.as_markup()
+def get_back_button(callback_data: str = "main_menu") -> InlineKeyboardMarkup:
+    """Кнопка назад"""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=" Назад", callback_data=callback_data)]
+    ])
 
-def get_machines_keyboard(machines: List[Asset]) -> InlineKeyboardMarkup:
-    """Клавиатура для выбора машины"""
-    builder = InlineKeyboardBuilder()
-    
-    for machine in machines:
-        builder.button(
-            text=f"☕ {machine.name} - {machine.location or 'Не указано'}",
-            callback_data=f"machine:{machine.id}"
-        )
-    
-    builder.button(text="❌ Отмена", callback_data="cancel")
-    builder.adjust(1)
-    
-    return builder.as_markup()
+def get_cancel_button() -> InlineKeyboardMarkup:
+    """Кнопка отмены"""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=" Отмена", callback_data="cancel")]
+    ])
 
 def get_confirm_keyboard() -> InlineKeyboardMarkup:
     """Клавиатура подтверждения"""
-    builder = InlineKeyboardBuilder()
-    builder.button(text="✅ Подтвердить", callback_data="confirm:yes")
-    builder.button(text="❌ Отмена", callback_data="confirm:no")
-    builder.adjust(2)
-    
-    return builder.as_markup()
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text=" Да", callback_data="confirm"),
+            InlineKeyboardButton(text=" Нет", callback_data="cancel")
+        ]
+    ])
 
-def get_skip_keyboard() -> InlineKeyboardMarkup:
-    """Клавиатура для пропуска шага"""
-    builder = InlineKeyboardBuilder()
-    builder.button(text="⏭️ Пропустить", callback_data="skip")
-    builder.button(text="❌ Отмена", callback_data="cancel")
-    builder.adjust(2)
-    
-    return builder.as_markup()

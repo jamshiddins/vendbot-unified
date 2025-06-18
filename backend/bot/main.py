@@ -1,51 +1,62 @@
+﻿import asyncio
+import logging
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.redis import RedisStorage
-from aiogram.webhook.aiohttp_server import SimpleRequestHandler
-from core.config import settings
-from .handlers import setup_handlers
-from .middlewares import setup_middlewares
-import logging
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from redis.asyncio import Redis
 
+from core.config import settings
+from bot.handlers import start, admin, warehouse, operator, admin_machines, hopper_management
+from bot.middlewares.database import DatabaseMiddleware
+
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-class BotManager:
-    def __init__(self):
-        self.bot = None
-        self.dp = None
-        self.webhook_handler = None
-    
-    async def start(self):
-        """Запуск бота"""
-        # Инициализация бота
-        self.bot = Bot(token=settings.BOT_TOKEN)
-        
-        # Инициализация диспетчера с Redis хранилищем
-        storage = RedisStorage.from_url(settings.REDIS_URL)
-        self.dp = Dispatcher(storage=storage)
-        
-        # Настройка обработчиков и middleware
-        setup_handlers(self.dp)
-        setup_middlewares(self.dp)
-        
-        # Настройка вебхука если указан URL
-        if settings.WEBHOOK_URL:
-            await self.setup_webhook()
-        else:
-            # Запуск polling для локальной разработки
-            logger.info("Starting bot in polling mode...")
-            await self.dp.start_polling(self.bot)
-    
-    async def setup_webhook(self):
-        """Настройка вебхука"""
-        webhook_url = f"{settings.WEBHOOK_URL}/webhook"
-        await self.bot.set_webhook(webhook_url)
-        logger.info(f"Webhook set to {webhook_url}")
-    
-    async def stop(self):
-        """Остановка бота"""
-        if self.bot:
-            await self.bot.session.close()
-            if settings.WEBHOOK_URL:
-                await self.bot.delete_webhook()
+async def main():
+    """Главная функция бота"""
 
-bot_manager = BotManager()
+    logger.info("Инициализация бота...")
+
+    # Создаем движок БД
+    engine = create_async_engine(settings.database_url)
+    session_pool = async_sessionmaker(engine, expire_on_commit=False)
+
+    # Создаем Redis
+    redis = Redis.from_url(settings.redis_url)
+    storage = RedisStorage(redis=redis)
+
+    # Создаем бота и диспетчер
+    bot = Bot(token=settings.bot_token)
+    dp = Dispatcher(storage=storage)
+    
+    # Регистрируем middleware
+    dp.message.middleware(DatabaseMiddleware(session_pool))
+    dp.callback_query.middleware(DatabaseMiddleware(session_pool))
+    
+    # Регистрируем роутеры
+    logger.info("Регистрация handlers...")
+    dp.include_router(start.router)
+    dp.include_router(admin.router)
+    dp.include_router(admin_machines.router)
+    dp.include_router(warehouse.router)
+    dp.include_router(operator.router)
+    dp.include_router(hopper_management.router)
+
+    # Запускаем бота
+    logger.info(" Бот запущен и готов к работе")
+
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await bot.session.close()
+        await engine.dispose()
+        await redis.close()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+

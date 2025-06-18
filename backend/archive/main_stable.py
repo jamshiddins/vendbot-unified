@@ -227,6 +227,21 @@ async def cmd_about(message: Message):
     await message.answer(about_text, parse_mode="HTML")
 
 # Функция запуска бота
+
+@dp.message()
+async def handle_any_message(message: Message):
+    """Обработчик всех остальных сообщений"""
+    await message.answer(
+        "❓ Я не понимаю эту команду.
+
+"
+        "Используйте /help для списка доступных команд
+"
+        "Или /menu для главного меню",
+        parse_mode="HTML"
+    )
+
+
 async def start_bot():
     """Запуск Telegram бота"""
     logger.info(" Инициализация Telegram бота...")

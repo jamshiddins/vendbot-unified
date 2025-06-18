@@ -1,0 +1,11 @@
+﻿# Добавьте этот код после последнего @dp.message хэндлера и перед async def start_bot():
+
+@dp.message()
+async def handle_any_message(message: Message):
+    """Обработчик всех остальных сообщений"""
+    await message.answer(
+        "❓ Я не понимаю эту команду.\n\n"
+        "Используйте /help для списка доступных команд\n"
+        "Или /menu для главного меню",
+        parse_mode="HTML"
+    )

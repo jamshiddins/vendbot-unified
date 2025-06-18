@@ -1,0 +1,14 @@
+﻿# Найдите строку с импортами и добавьте BotCommand
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, BotCommand
+
+# Найдите функцию start_bot() и замените установку команд на:
+        await bot.set_my_commands([
+            BotCommand(command="start", description="Начало работы"),
+            BotCommand(command="help", description="Справка"),
+            BotCommand(command="menu", description="Главное меню"),
+            BotCommand(command="status", description="Статус системы"),
+            BotCommand(command="stats", description="Статистика"),
+            BotCommand(command="feedback", description="Обратная связь"),
+            BotCommand(command="cancel", description="Отмена операции"),
+            BotCommand(command="about", description="О системе")
+        ])
