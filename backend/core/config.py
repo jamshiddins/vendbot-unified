@@ -1,40 +1,55 @@
 ﻿import os
-from typing import List, Optional
+from typing import List
+from pydantic_settings import BaseSettings
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.orm import declarative_base
 
-class Settings:
-    def __init__(self):
-        # Bot settings
-        self.bot_token = os.getenv("BOT_TOKEN", "")
-        if not self.bot_token:
-            raise ValueError("BOT_TOKEN environment variable is required")
-            
-        # Admin IDs
-        admin_ids_str = os.getenv("ADMIN_IDS", "42283329")
-        self.admin_ids = [int(id.strip()) for id in admin_ids_str.split(",") if id.strip()]
-        
-        # Database
-        db_url = os.getenv("DATABASE_URL", "")
-        if not db_url:
-            raise ValueError("DATABASE_URL environment variable is required")
-            
-        # Всегда используем asyncpg
-        if db_url.startswith("postgresql://"):
-            db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-        elif not db_url.startswith("postgresql+asyncpg://"):
-            db_url = f"postgresql+asyncpg://{db_url.split('://', 1)[1]}"
-            
-        self.database_url = db_url
-        
-        # Redis
-        self.redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-        
-        # JWT (опционально)
-        self.jwt_secret_key = os.getenv("JWT_SECRET_KEY", None)
-        
-        # Other settings
-        self.log_level = os.getenv("LOG_LEVEL", "INFO")
-        self.timezone = os.getenv("TZ", "Asia/Tashkent")
-        
-        print(f"[CONFIG] Using database URL: {self.database_url[:50]}...")
+class Settings(BaseSettings):
+    # Bot settings
+    bot_token: str
+    admin_ids: List[int] = []
+    
+    # Database settings
+    database_url: str
+    
+    # JWT settings
+    jwt_secret_key: str = "your-secret-key-here"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60
+    
+    # Application settings
+    log_level: str = "INFO"
+    
+    class Config:
+        env_file = ".env"
+        case_sensitive = False
 
+# Get settings
 settings = Settings()
+
+# Create async engine with Supabase-compatible settings
+engine = create_async_engine(
+    settings.database_url,
+    echo=False,
+    pool_pre_ping=True,
+    connect_args={
+        "server_settings": {
+            "application_name": "vendbot"
+        },
+        "statement_cache_size": 0,  # Отключаем prepared statements для Supabase
+        "prepared_statement_cache_size": 0,
+        "command_timeout": 60
+    }
+)
+
+# Session factory
+async_session_maker = async_sessionmaker(
+    engine,
+    expire_on_commit=False
+)
+
+# Base for models
+Base = declarative_base()
+
+def get_settings() -> Settings:
+    return settings
