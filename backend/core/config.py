@@ -13,27 +13,22 @@ class Settings(BaseSettings):
     # Database settings  
     database_url: str
     
-    # JWT settings
-    jwt_secret_key: str = "your-secret-key-here"
-    jwt_algorithm: str = "HS256"
-    jwt_expire_minutes: int = 60
+    # Security settings
+    secret_key: str
+    jwt_secret_key: str
+    
+    # Redis
+    redis_url: str = "redis://localhost:6379/0"
     
     # Application settings
-    log_level: str = "INFO"
-    
-    # Дополнительные поля из .env (опциональные)
-    secret_key: str = ""
-    redis_url: str = "redis://localhost:6379/0"
     debug: bool = False
     environment: str = "development"
+    log_level: str = "INFO"
+    
+    # API settings
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     api_prefix: str = "/api/v1"
-    frontend_url: str = "http://localhost:3000"
-    upload_dir: str = "./uploads"
-    max_upload_size: int = 10485760
-    supabase_url: str = ""
-    supabase_project_id: str = ""
     
     @validator('admin_ids', pre=True)
     def parse_admin_ids(cls, v):
@@ -58,7 +53,7 @@ settings = Settings()
 # Create async engine with Supabase-compatible settings
 engine = create_async_engine(
     settings.database_url,
-    echo=False,
+    echo=settings.debug,  # Включаем логи SQL в режиме debug
     pool_pre_ping=True,
     connect_args={
         "server_settings": {
