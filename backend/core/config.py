@@ -1,5 +1,5 @@
 ﻿import os
-from typing import List, Union
+from typing import List, Union, Optional
 from pydantic_settings import BaseSettings
 from pydantic import validator
 from sqlalchemy.orm import declarative_base
@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     database_url: str
     
     # Security settings
-    secret_key: str
-    jwt_secret_key: str
+    secret_key: Optional[str] = "default-secret-key-change-in-production"
+    jwt_secret_key: Optional[str] = "default-jwt-secret-key"
     
     # Redis
     redis_url: str = "redis://localhost:6379/0"
