@@ -1,62 +1,70 @@
 ﻿import asyncio
 import logging
 from aiogram import Bot, Dispatcher
-from aiogram.fsm.storage.redis import RedisStorage
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from redis.asyncio import Redis
-
+from aiogram.fsm.storage.memory import MemoryStorage
 from core.config import settings
-from bot.handlers import start, admin, warehouse, operator, admin_machines, hopper_management
+from db.database import engine
+from bot.handlers import start, admin, warehouse, operator, driver, common, owner
+from bot.middlewares.auth import AuthMiddleware
+from bot.middlewares.logging import LoggingMiddleware
 from bot.middlewares.database import DatabaseMiddleware
 
 # Настройка логирования
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, settings.log_level, logging.INFO),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
 async def main():
-    """Главная функция бота"""
-
-    logger.info("Инициализация бота...")
-
-    # Создаем движок БД
-    engine = create_async_engine(settings.database_url)
-    session_pool = async_sessionmaker(engine, expire_on_commit=False)
-
-    # Создаем Redis
-    redis = Redis.from_url(settings.redis_url)
-    storage = RedisStorage(redis=redis)
-
-    # Создаем бота и диспетчер
-    bot = Bot(token=settings.bot_token)
+    '''Главная функция запуска бота'''
+    logger.info(' Запуск VendBot...')
+    
+    # Создаем бота
+    bot = Bot(token=settings.bot_token, parse_mode='HTML')
+    
+    # Временно используем MemoryStorage
+    storage = MemoryStorage()
+    
+    # Создаем диспетчер
     dp = Dispatcher(storage=storage)
     
     # Регистрируем middleware
-    dp.message.middleware(DatabaseMiddleware(session_pool))
-    dp.callback_query.middleware(DatabaseMiddleware(session_pool))
+    dp.message.middleware(LoggingMiddleware())
+    dp.callback_query.middleware(LoggingMiddleware())
+    dp.message.middleware(DatabaseMiddleware())
+    dp.callback_query.middleware(DatabaseMiddleware())
+    dp.message.middleware(AuthMiddleware())
+    dp.callback_query.middleware(AuthMiddleware())
     
     # Регистрируем роутеры
-    logger.info("Регистрация handlers...")
     dp.include_router(start.router)
+    dp.include_router(owner.router)  # Роутер владельца
     dp.include_router(admin.router)
-    dp.include_router(admin_machines.router)
     dp.include_router(warehouse.router)
     dp.include_router(operator.router)
-    dp.include_router(hopper_management.router)
-
-    # Запускаем бота
-    logger.info(" Бот запущен и готов к работе")
-
+    dp.include_router(driver.router)
+    dp.include_router(common.router)
+    
+    # Уведомляем владельца о запуске
     try:
+        await bot.send_message(
+            42283329,
+            ' VendBot запущен и готов к работе!\n\n'
+            'Используйте /role для управления пользователями.'
+        )
+    except Exception as e:
+        logger.error(f'Не удалось отправить сообщение владельцу: {e}')
+    
+    logger.info(' Бот успешно запущен')
+    
+    try:
+        # Запускаем polling
         await dp.start_polling(bot)
     finally:
+        # Закрываем соединения
         await bot.session.close()
         await engine.dispose()
-        await redis.close()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     asyncio.run(main())
-
-
