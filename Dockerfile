@@ -1,34 +1,24 @@
-﻿FROM python:3.11-slim
+﻿FROM python:3.11-alpine
 
-# Set working directory
+# Install build dependencies
+RUN apk add --no-cache \
+    gcc \
+    musl-dev \
+    libffi-dev \
+    postgresql-dev \
+    python3-dev
+
 WORKDIR /app
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    python3-dev \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements first for better caching
+# Copy and install requirements
 COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Python dependencies with retry
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
-
-# Copy backend directory
+# Copy application
 COPY backend/ ./backend/
 
-# Create necessary directories
-RUN mkdir -p logs data uploads
+# Create directories
+RUN mkdir -p logs uploads
 
-# Set Python path
 ENV PYTHONPATH=/app/backend
-
-# Run the bot
 CMD ["python", "backend/main.py"]
