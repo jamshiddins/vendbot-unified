@@ -1,6 +1,6 @@
 ﻿import os
 from typing import List, Union
-from pydantic_settings import BaseSettings  # Исправленный импорт
+from pydantic_settings import BaseSettings
 from pydantic import validator
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import declarative_base
@@ -21,6 +21,20 @@ class Settings(BaseSettings):
     # Application settings
     log_level: str = "INFO"
     
+    # Дополнительные поля из .env (опциональные)
+    secret_key: str = ""
+    redis_url: str = "redis://localhost:6379/0"
+    debug: bool = False
+    environment: str = "development"
+    api_host: str = "0.0.0.0"
+    api_port: int = 8000
+    api_prefix: str = "/api/v1"
+    frontend_url: str = "http://localhost:3000"
+    upload_dir: str = "./uploads"
+    max_upload_size: int = 10485760
+    supabase_url: str = ""
+    supabase_project_id: str = ""
+    
     @validator('admin_ids', pre=True)
     def parse_admin_ids(cls, v):
         if isinstance(v, str):
@@ -36,6 +50,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
+        extra = "ignore"  # Игнорировать лишние поля
 
 # Get settings
 settings = Settings()
