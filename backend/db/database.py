@@ -1,11 +1,8 @@
 ﻿from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.pool import NullPool
-from core.config import settings
+from core.config import settings, Base
 import asyncio
-
-# Базовый класс для моделей
-Base = declarative_base()
 
 # Создаем асинхронный движок с настройками для Supabase
 engine = create_async_engine(
