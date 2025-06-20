@@ -1,7 +1,7 @@
 ﻿from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.pool import NullPool
-from backend.core.config import settings
+from core.config import settings  # Убрали backend.
 import asyncio
 
 # Корректируем DATABASE_URL для asyncpg

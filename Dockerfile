@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+﻿FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -29,5 +29,8 @@ RUN mkdir -p logs uploads
 ENV PYTHONPATH=/app/backend
 ENV PYTHONUNBUFFERED=1
 
+# Change to backend directory before running
+WORKDIR /app/backend
+
 # Run the bot
-CMD ["python", "backend/main.py"]
+CMD ["python", "main.py"]
