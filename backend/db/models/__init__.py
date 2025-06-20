@@ -1,20 +1,13 @@
-﻿from .base import Base
-from .user import User, UserRole
-from .asset import Asset
-from .ingredient import Ingredient
+﻿from .user import User, UserRole, UserRoleAssignment
 from .machine import Machine
-from .hopper import Hopper, HopperStatus
-from .hopper_operation import HopperOperation, OperationType
+from .hopper import Hopper
+from .ingredient import Ingredient
+from .hopper_operation import HopperOperation
 
 __all__ = [
-    "Base",
-    "User",
-    "UserRole", 
-    "Asset",
-    "Ingredient",
-    "Machine",
-    "Hopper",
-    "HopperStatus",
-    "HopperOperation",
-    "OperationType"
+    "User", "UserRole", "UserRoleAssignment",
+    "Machine", 
+    "Hopper", 
+    "Ingredient", 
+    "HopperOperation"
 ]
