@@ -1,13 +1,13 @@
 ﻿import os
-from typing import List
-from pydantic_settings import BaseSettings
+from typing import List, Union
+from pydantic import BaseSettings, validator
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 
 class Settings(BaseSettings):
     # Bot settings
     bot_token: str
-    admin_ids: List[int] = []
+    admin_ids: Union[str, List[int]] = []
     
     # Database settings
     database_url: str
@@ -19,6 +19,18 @@ class Settings(BaseSettings):
     
     # Application settings
     log_level: str = "INFO"
+    
+    @validator('admin_ids', pre=True)
+    def parse_admin_ids(cls, v):
+        if isinstance(v, str):
+            # Преобразуем строку в список int
+            return [int(x.strip()) for x in v.split(',') if x.strip()]
+        elif isinstance(v, int):
+            # Если передано одно число
+            return [v]
+        elif isinstance(v, list):
+            return v
+        return []
     
     class Config:
         env_file = ".env"
@@ -36,7 +48,7 @@ engine = create_async_engine(
         "server_settings": {
             "application_name": "vendbot"
         },
-        "statement_cache_size": 0,  # Отключаем prepared statements для Supabase
+        "statement_cache_size": 0,
         "prepared_statement_cache_size": 0,
         "command_timeout": 60
     }
