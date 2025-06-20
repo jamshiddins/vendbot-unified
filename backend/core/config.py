@@ -1,6 +1,7 @@
 ﻿import os
 from typing import List, Union
-from pydantic import BaseSettings, validator
+from pydantic_settings import BaseSettings  # Исправленный импорт
+from pydantic import validator
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 
