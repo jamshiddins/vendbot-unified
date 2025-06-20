@@ -1,24 +1,28 @@
-﻿FROM python:3.11-alpine
-
-# Install build dependencies
-RUN apk add --no-cache \
-    gcc \
-    musl-dev \
-    libffi-dev \
-    postgresql-dev \
-    python3-dev
+﻿FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copy and install requirements
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    python3-dev \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
 COPY requirements.txt .
+
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application
+# Copy backend directory
 COPY backend/ ./backend/
 
-# Create directories
+# Create necessary directories
 RUN mkdir -p logs uploads
 
+# Set Python path
 ENV PYTHONPATH=/app/backend
+
+# Run the bot
 CMD ["python", "backend/main.py"]
