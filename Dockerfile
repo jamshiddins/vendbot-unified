@@ -2,18 +2,21 @@
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including PostgreSQL client
 RUN apt-get update && apt-get install -y \
     gcc \
     python3-dev \
     libpq-dev \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Upgrade pip and install dependencies
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir asyncpg==0.29.0 && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy backend directory
 COPY backend/ ./backend/
