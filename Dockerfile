@@ -3,6 +3,10 @@
 # Set working directory
 WORKDIR /app
 
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
@@ -10,20 +14,21 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
+# Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies with retry
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy backend directory
-COPY backend/ ./
+COPY backend/ ./backend/
 
 # Create necessary directories
 RUN mkdir -p logs data uploads
 
 # Set Python path
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app/backend
 
-# Run the bot from backend directory
-CMD ["python", "main.py"]
+# Run the bot
+CMD ["python", "backend/main.py"]
