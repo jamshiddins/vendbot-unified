@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     bot_token: str
     admin_ids: Union[str, List[int]] = []
     
-    # Database settings
+    # Database settings  
     database_url: str
     
     # JWT settings
@@ -48,7 +48,7 @@ engine = create_async_engine(
         "server_settings": {
             "application_name": "vendbot"
         },
-        "statement_cache_size": 0,
+        "statement_cache_size": 0,  # Критично для Supabase pgbouncer
         "prepared_statement_cache_size": 0,
         "command_timeout": 60
     }
