@@ -1,70 +1,94 @@
 ﻿import asyncio
 import logging
+import sys
+from pathlib import Path
+
 from aiogram import Bot, Dispatcher
+from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
-from core.config import settings
-from db.database import engine
-from bot.handlers import start, admin, warehouse, operator, driver, common, owner
-from bot.middlewares.auth import AuthMiddleware
-from bot.middlewares.logging import LoggingMiddleware
-from bot.middlewares.database import DatabaseMiddleware
+from aiogram.client.bot import DefaultBotProperties
 
 # Настройка логирования
 logging.basicConfig(
-    level=getattr(logging, settings.log_level, logging.INFO),
+    level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-async def main():
-    '''Главная функция запуска бота'''
-    logger.info(' Запуск VendBot...')
-    
-    # Создаем бота
-    bot = Bot(token=settings.bot_token, parse_mode='HTML')
-    
-    # Временно используем MemoryStorage
-    storage = MemoryStorage()
-    
-    # Создаем диспетчер
-    dp = Dispatcher(storage=storage)
-    
-    # Регистрируем middleware
-    dp.message.middleware(LoggingMiddleware())
-    dp.callback_query.middleware(LoggingMiddleware())
-    dp.message.middleware(DatabaseMiddleware())
-    dp.callback_query.middleware(DatabaseMiddleware())
-    dp.message.middleware(AuthMiddleware())
-    dp.callback_query.middleware(AuthMiddleware())
-    
-    # Регистрируем роутеры
-    dp.include_router(start.router)
-    dp.include_router(owner.router)  # Роутер владельца
-    dp.include_router(admin.router)
-    dp.include_router(warehouse.router)
-    dp.include_router(operator.router)
-    dp.include_router(driver.router)
-    dp.include_router(common.router)
-    
-    # Уведомляем владельца о запуске
-    try:
-        await bot.send_message(
-            42283329,
-            ' VendBot запущен и готов к работе!\n\n'
-            'Используйте /role для управления пользователями.'
-        )
-    except Exception as e:
-        logger.error(f'Не удалось отправить сообщение владельцу: {e}')
-    
-    logger.info(' Бот успешно запущен')
-    
-    try:
-        # Запускаем polling
-        await dp.start_polling(bot)
-    finally:
-        # Закрываем соединения
-        await bot.session.close()
-        await engine.dispose()
+# Импорты из нашего проекта
+try:
+    from core.config import settings
+    from db.database import init_db
+    from bot.handlers import setup_handlers
+    from bot.middlewares.database import DatabaseMiddleware
+    from bot.middlewares.logging import LoggingMiddleware
+except ImportError as e:
+    logger.error(f"Ошибка импорта: {e}")
+    logger.error(f"PYTHONPATH: {sys.path}")
+    sys.exit(1)
 
-if __name__ == '__main__':
-    asyncio.run(main())
+async def on_startup(bot: Bot):
+    """Действия при запуске бота"""
+    logger.info(" Запуск бота...")
+    
+    # Инициализация БД
+    try:
+        await init_db()
+        logger.info(" База данных инициализирована")
+    except Exception as e:
+        logger.error(f" Ошибка инициализации БД: {e}")
+        raise
+    
+    # Информация о боте
+    bot_info = await bot.get_me()
+    logger.info(f" Бот @{bot_info.username} запущен!")
+
+async def on_shutdown(bot: Bot):
+    """Действия при остановке бота"""
+    logger.info(" Остановка бота...")
+    await bot.session.close()
+
+async def main():
+    """Основная функция запуска бота"""
+    # Проверка токена
+    if not settings.BOT_TOKEN:
+        logger.error(" BOT_TOKEN не установлен!")
+        sys.exit(1)
+    
+    # Создание бота и диспетчера
+    bot = Bot(
+        token=settings.BOT_TOKEN,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+    )
+    
+    dp = Dispatcher(storage=MemoryStorage())
+    
+    # Регистрация middleware
+    dp.message.middleware(DatabaseMiddleware())
+    dp.message.middleware(LoggingMiddleware())
+    dp.callback_query.middleware(DatabaseMiddleware())
+    dp.callback_query.middleware(LoggingMiddleware())
+    
+    # Регистрация хендлеров
+    setup_handlers(dp)
+    
+    # Регистрация startup/shutdown
+    dp.startup.register(on_startup)
+    dp.shutdown.register(on_shutdown)
+    
+    # Запуск
+    try:
+        logger.info(" Бот запущен и готов к работе!")
+        await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+    except Exception as e:
+        logger.error(f" Критическая ошибка: {e}")
+        raise
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info(" Бот остановлен пользователем")
+    except Exception as e:
+        logger.error(f" Непредвиденная ошибка: {e}")
+        sys.exit(1)
