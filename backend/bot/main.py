@@ -4,9 +4,7 @@ import sys
 from pathlib import Path
 
 from aiogram import Bot, Dispatcher
-from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.client.bot import DefaultBotProperties
 
 # Настройка логирования
 logging.basicConfig(
@@ -55,12 +53,10 @@ async def main():
         logger.error(" BOT_TOKEN не установлен!")
         sys.exit(1)
     
-    # Создание бота и диспетчера
-    bot = Bot(
-        token=settings.BOT_TOKEN,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-    )
+    # Создание бота с parse_mode по умолчанию
+    bot = Bot(token=settings.BOT_TOKEN, parse_mode="HTML")
     
+    # Создание диспетчера
     dp = Dispatcher(storage=MemoryStorage())
     
     # Регистрация middleware
@@ -79,7 +75,7 @@ async def main():
     # Запуск
     try:
         logger.info(" Бот запущен и готов к работе!")
-        await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+        await dp.start_polling(bot)
     except Exception as e:
         logger.error(f" Критическая ошибка: {e}")
         raise
