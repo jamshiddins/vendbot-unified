@@ -1,25 +1,35 @@
 ﻿FROM python:3.11-slim
 
-WORKDIR /app
-
-# Установка системных зависимостей
+# Системные зависимости
 RUN apt-get update && apt-get install -y \
     gcc \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Копирование файлов из backend директории
-COPY backend/requirements.txt ./requirements.txt
+# Рабочая директория
+WORKDIR /app
+
+# Копируем requirements
+COPY backend/requirements.txt .
+
+# Устанавливаем зависимости Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копирование всего кода backend
+# Копируем код
 COPY backend/ ./backend/
 
-# Переход в рабочую директорию
+# Переменные окружения
+ENV PYTHONPATH=/app/backend
+ENV PYTHONUNBUFFERED=1
+
+# Переходим в backend для запуска
 WORKDIR /app/backend
 
-# Railway использует переменную PORT (но наш бот её не использует)
-ENV PYTHONPATH=/app/backend
+# Проверка структуры (для отладки)
+RUN echo "📁 Проверка структуры:" && \
+    ls -la && \
+    echo "📁 Содержимое bot/:" && \
+    ls -la bot/
 
-# Команда запуска
-CMD ["python", "run_bot.py"]
+# Запуск бота
+CMD ["python", "main.py"]
