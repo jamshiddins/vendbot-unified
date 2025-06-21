@@ -11,14 +11,25 @@ logger = logging.getLogger(__name__)
 # База для моделей
 Base = declarative_base()
 
+# Получаем DATABASE_URL правильно
+database_url = getattr(settings, 'database_url', None) or getattr(settings, 'DATABASE_URL', None) or os.getenv('DATABASE_URL')
+
+if not database_url:
+    logger.error("DATABASE_URL не найден в настройках!")
+    raise ValueError("DATABASE_URL не установлен")
+
+# Конвертируем URL для asyncpg
+if database_url.startswith('postgresql://'):
+    database_url = database_url.replace('postgresql://', 'postgresql+asyncpg://')
+
 # Создаем движок
 engine = create_async_engine(
-    settings.DATABASE_URL.replace('postgresql://', 'postgresql+asyncpg://'),
-    echo=settings.DEBUG,
+    database_url,
+    echo=settings.DEBUG if hasattr(settings, 'DEBUG') else False,
     pool_pre_ping=True,
     pool_size=5,
     max_overflow=10,
-    poolclass=NullPool if 'pooler' in settings.DATABASE_URL else None
+    poolclass=NullPool if 'pooler' in database_url else None
 )
 
 # Создаем фабрику сессий
