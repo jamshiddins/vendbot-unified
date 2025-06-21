@@ -1,92 +1,97 @@
-import asyncio
-import os
+п»їimport asyncio
 import logging
 import sys
 from pathlib import Path
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
 
-# Настройка логирования
+from core.config import settings
+from db.database import init_db, get_db_session
+from bot.handlers import setup_handlers
+from bot.middlewares import setup_middlewares
+
+# РќР°СЃС‚СЂРѕР№РєР° Р»РѕРіРёСЂРѕРІР°РЅРёСЏ
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=getattr(logging, settings.log_level),
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler("bot.log", encoding="utf-8")
+    ]
 )
 logger = logging.getLogger(__name__)
 
-# Импорты из нашего проекта
-try:
-    from core.config import settings
-    from db.database import init_db
-    from bot.handlers import setup_handlers
-    from bot.middlewares.database import DatabaseMiddleware
-    from bot.middlewares.logging import LoggingMiddleware
-except ImportError as e:
-    logger.error(f"Ошибка импорта: {e}")
-    logger.error(f"PYTHONPATH: {sys.path}")
-    sys.exit(1)
-
 async def on_startup(bot: Bot):
-    """Действия при запуске бота"""
-    logger.info(" Запуск бота...")
+    """Р”РµР№СЃС‚РІРёСЏ РїСЂРё Р·Р°РїСѓСЃРєРµ Р±РѕС‚Р°"""
+    logger.info("Р—Р°РїСѓСЃРє Р±РѕС‚Р°...")
     
-    # Инициализация БД
-    try:
-        await init_db()
-        logger.info(" База данных инициализирована")
-    except Exception as e:
-        logger.error(f" Ошибка инициализации БД: {e}")
-        raise
+    # РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ Р‘Р”
+    await init_db()
+    logger.info("Р‘Р°Р·Р° РґР°РЅРЅС‹С… РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅР°")
     
-    # Информация о боте
-    bot_info = await bot.get_me()
-    logger.info(f" Бот @{bot_info.username} запущен!")
+    # РЈРІРµРґРѕРјР»РµРЅРёРµ Р°РґРјРёРЅРѕРІ
+    for admin_id in settings.admin_ids:
+        try:
+            await bot.send_message(
+                admin_id,
+                " Р‘РѕС‚ Р·Р°РїСѓС‰РµРЅ Рё РіРѕС‚РѕРІ Рє СЂР°Р±РѕС‚Рµ!"
+            )
+        except Exception as e:
+            logger.error(f"РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ СЃРѕРѕР±С‰РµРЅРёРµ Р°РґРјРёРЅСѓ {admin_id}: {e}")
 
 async def on_shutdown(bot: Bot):
-    """Действия при остановке бота"""
-    logger.info(" Остановка бота...")
-    await bot.session.close()
+    """Р”РµР№СЃС‚РІРёСЏ РїСЂРё РѕСЃС‚Р°РЅРѕРІРєРµ Р±РѕС‚Р°"""
+    logger.info("РћСЃС‚Р°РЅРѕРІРєР° Р±РѕС‚Р°...")
+    
+    # РЈРІРµРґРѕРјР»РµРЅРёРµ Р°РґРјРёРЅРѕРІ
+    for admin_id in settings.admin_ids:
+        try:
+            await bot.send_message(
+                admin_id,
+                " Р‘РѕС‚ РѕСЃС‚Р°РЅРѕРІР»РµРЅ"
+            )
+        except Exception as e:
+            logger.error(f"РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ СЃРѕРѕР±С‰РµРЅРёРµ Р°РґРјРёРЅСѓ {admin_id}: {e}")
 
 async def main():
-    """Основная функция запуска бота"""
-    # Проверка токена
-    if not (hasattr(settings, 'BOT_TOKEN') and settings.BOT_TOKEN) and not (hasattr(settings, 'bot_token') and settings.bot_token):
-        logger.error(" BOT_TOKEN не установлен!")
-        sys.exit(1)
+    """РћСЃРЅРѕРІРЅР°СЏ С„СѓРЅРєС†РёСЏ Р·Р°РїСѓСЃРєР° Р±РѕС‚Р°"""
+    # РЎРѕР·РґР°РЅРёРµ Р±РѕС‚Р°
+    bot = Bot(
+        token=settings.bot_token,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+    )
     
-    # Создание бота с parse_mode по умолчанию
-    bot = Bot(token=getattr(settings, 'bot_token', None) or getattr(settings, 'BOT_TOKEN', None) or os.getenv('BOT_TOKEN'), parse_mode="HTML")
-    
-    # Создание диспетчера
+    # РЎРѕР·РґР°РЅРёРµ РґРёСЃРїРµС‚С‡РµСЂР°
     dp = Dispatcher(storage=MemoryStorage())
     
-    # Регистрация middleware
-    dp.message.middleware(DatabaseMiddleware())
-    dp.message.middleware(LoggingMiddleware())
-    dp.callback_query.middleware(DatabaseMiddleware())
-    dp.callback_query.middleware(LoggingMiddleware())
+    # Р РµРіРёСЃС‚СЂР°С†РёСЏ middleware
+    setup_middlewares(dp)
     
-    # Регистрация хендлеров
+    # Р РµРіРёСЃС‚СЂР°С†РёСЏ handlers
     setup_handlers(dp)
     
-    # Регистрация startup/shutdown
+    # Р РµРіРёСЃС‚СЂР°С†РёСЏ С„СѓРЅРєС†РёР№ Р·Р°РїСѓСЃРєР°/РѕСЃС‚Р°РЅРѕРІРєРё
     dp.startup.register(on_startup)
     dp.shutdown.register(on_shutdown)
     
-    # Запуск
+    # Р—Р°РїСѓСЃРє Р±РѕС‚Р°
     try:
-        logger.info(" Бот запущен и готов к работе!")
-        await dp.start_polling(bot)
+        logger.info("РќР°С‡РёРЅР°РµРј polling...")
+        await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
     except Exception as e:
-        logger.error(f" Критическая ошибка: {e}")
+        logger.error(f"РћС€РёР±РєР° РїСЂРё Р·Р°РїСѓСЃРєРµ Р±РѕС‚Р°: {e}")
         raise
+    finally:
+        await bot.session.close()
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info(" Бот остановлен пользователем")
+        logger.info("Р‘РѕС‚ РѕСЃС‚Р°РЅРѕРІР»РµРЅ РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј")
     except Exception as e:
-        logger.error(f" Непредвиденная ошибка: {e}")
+        logger.error(f"РљСЂРёС‚РёС‡РµСЃРєР°СЏ РѕС€РёР±РєР°: {e}")
         sys.exit(1)
-

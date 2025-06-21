@@ -14,23 +14,18 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements
 COPY requirements.txt .
 
-# Install Python dependencies with verbose output
+# Install Python dependencies
 RUN pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt && \
-    python -c "import asyncpg; print('asyncpg version:', asyncpg.__version__)"
+    pip install --no-cache-dir -r requirements.txt
 
-# Copy backend directory
-COPY backend/ ./backend/
+# Copy all backend code
+COPY backend/ ./
 
 # Create necessary directories
 RUN mkdir -p logs uploads
 
 # Set environment
-ENV PYTHONPATH=/app/backend
 ENV PYTHONUNBUFFERED=1
-
-# Change to backend directory before running
-WORKDIR /app/backend
 
 # Run the bot
 CMD ["python", "main.py"]

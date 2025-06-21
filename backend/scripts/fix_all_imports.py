@@ -20,9 +20,9 @@ def fix_imports_in_file(filepath):
     
     # Паттерны для замены
     replacements = [
-        # from backend.xxx -> from xxx
+        # from xxx -> from xxx
         (r'from backend\.', r'from '),
-        # import backend.xxx -> import xxx
+        # import xxx -> import xxx
         (r'import backend\.', r'import '),
     ]
     
@@ -68,7 +68,7 @@ def main():
             # Проверяем, были ли ошибки
             try:
                 with open(py_file, 'r', encoding='utf-8') as f:
-                    if 'from backend.' in f.read() or 'import backend.' in f.read():
+                    if 'from ' in f.read() or 'import ' in f.read():
                         error_count += 1
             except:
                 pass
