@@ -21,3 +21,23 @@ def get_confirm_keyboard() -> InlineKeyboardMarkup:
         InlineKeyboardButton(text=" Нет", callback_data="cancel")
     )
     return keyboard.as_markup()
+
+# Откройте файл в VSCode и добавьте в конец:
+
+def get_main_menu():
+    """Создает главное меню бота"""
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    
+    # Кнопки главного меню
+    buttons = [
+        InlineKeyboardButton("👤 Профиль", callback_data="profile"),
+        InlineKeyboardButton("📊 Статистика", callback_data="stats"),
+        InlineKeyboardButton("⚙️ Настройки", callback_data="settings"),
+        InlineKeyboardButton("ℹ️ Помощь", callback_data="help"),
+    ]
+    
+    keyboard.add(*buttons)
+    
+    return keyboard
