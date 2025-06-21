@@ -5,7 +5,6 @@ from pathlib import Path
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 from core.config import settings
@@ -18,8 +17,7 @@ logging.basicConfig(
     level=getattr(logging, settings.log_level),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler("bot.log", encoding="utf-8")
+        logging.StreamHandler(sys.stdout)
     ]
 )
 logger = logging.getLogger(__name__)
@@ -37,7 +35,8 @@ async def on_startup(bot: Bot):
         try:
             await bot.send_message(
                 admin_id,
-                " Бот запущен и готов к работе!"
+                " Бот запущен и готов к работе!",
+                parse_mode=ParseMode.HTML
             )
         except Exception as e:
             logger.error(f"Не удалось отправить сообщение админу {admin_id}: {e}")
@@ -51,18 +50,16 @@ async def on_shutdown(bot: Bot):
         try:
             await bot.send_message(
                 admin_id,
-                " Бот остановлен"
+                " Бот остановлен",
+                parse_mode=ParseMode.HTML
             )
         except Exception as e:
             logger.error(f"Не удалось отправить сообщение админу {admin_id}: {e}")
 
 async def main():
     """Основная функция запуска бота"""
-    # Создание бота
-    bot = Bot(
-        token=settings.bot_token,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-    )
+    # Создание бота с parse_mode без DefaultBotProperties
+    bot = Bot(token=settings.bot_token)
     
     # Создание диспетчера
     dp = Dispatcher(storage=MemoryStorage())
