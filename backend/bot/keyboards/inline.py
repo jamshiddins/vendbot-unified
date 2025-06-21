@@ -22,22 +22,31 @@ def get_confirm_keyboard() -> InlineKeyboardMarkup:
     )
     return keyboard.as_markup()
 
-# Откройте файл в VSCode и добавьте в конец:
-
-def get_main_menu():
-    """Создает главное меню бота"""
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+def get_main_menu(user=None):
+    """Создает главное меню бота с учетом роли пользователя"""
+    keyboard = InlineKeyboardBuilder()
     
-    keyboard = InlineKeyboardMarkup(row_width=2)
+    # Базовые кнопки для всех
+    keyboard.row(
+        InlineKeyboardButton(text=" Профиль", callback_data="profile"),
+        InlineKeyboardButton(text=" Статистика", callback_data="stats")
+    )
     
-    # Кнопки главного меню
-    buttons = [
-        InlineKeyboardButton("👤 Профиль", callback_data="profile"),
-        InlineKeyboardButton("📊 Статистика", callback_data="stats"),
-        InlineKeyboardButton("⚙️ Настройки", callback_data="settings"),
-        InlineKeyboardButton("ℹ️ Помощь", callback_data="help"),
-    ]
+    # Дополнительные кнопки в зависимости от роли
+    if user and hasattr(user, 'role'):
+        if user.role in ['admin', 'warehouse', 'operator', 'driver']:
+            keyboard.row(
+                InlineKeyboardButton(text=" Рабочее место", callback_data=f"workplace_{user.role}")
+            )
+        
+        if user.role == 'admin':
+            keyboard.row(
+                InlineKeyboardButton(text=" Админ панель", callback_data="admin_panel")
+            )
     
-    keyboard.add(*buttons)
+    keyboard.row(
+        InlineKeyboardButton(text=" Помощь", callback_data="help"),
+        InlineKeyboardButton(text="ℹ О боте", callback_data="about")
+    )
     
-    return keyboard
+    return keyboard.as_markup()
