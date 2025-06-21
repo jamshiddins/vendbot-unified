@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 # База для моделей
 Base = declarative_base()
 
-# Получаем DATABASE_URL правильно
+# Получаем DATABASE_URL
 database_url = getattr(settings, 'database_url', None) or getattr(settings, 'DATABASE_URL', None) or os.getenv('DATABASE_URL')
 
 if not database_url:
@@ -22,15 +22,27 @@ if not database_url:
 if database_url.startswith('postgresql://'):
     database_url = database_url.replace('postgresql://', 'postgresql+asyncpg://')
 
-# Создаем движок
-engine = create_async_engine(
-    database_url,
-    echo=settings.DEBUG if hasattr(settings, 'DEBUG') else False,
-    pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10,
-    poolclass=NullPool if 'pooler' in database_url else None
-)
+# Определяем, используется ли pooler
+use_pooler = 'pooler' in database_url or 'pgbouncer' in database_url
+
+# Создаем движок с правильными параметрами
+if use_pooler:
+    # Для pooler используем NullPool без дополнительных параметров
+    engine = create_async_engine(
+        database_url,
+        echo=settings.debug if hasattr(settings, 'debug') else False,
+        pool_pre_ping=True,
+        poolclass=NullPool
+    )
+else:
+    # Для прямого подключения используем обычный пул
+    engine = create_async_engine(
+        database_url,
+        echo=settings.debug if hasattr(settings, 'debug') else False,
+        pool_pre_ping=True,
+        pool_size=5,
+        max_overflow=10
+    )
 
 # Создаем фабрику сессий
 async_session_maker = async_sessionmaker(
