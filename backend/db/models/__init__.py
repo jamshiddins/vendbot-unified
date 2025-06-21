@@ -1,13 +1,26 @@
-﻿from .user import User, UserRole, UserRoleAssignment
-from .machine import Machine
-from .hopper import Hopper
-from .ingredient import Ingredient
-from .hopper_operation import HopperOperation
+﻿"""Database models package"""
+from .base import (
+    Base,
+    TimestampMixin,
+    User,
+    UserRole,
+    user_roles_table,
+    Machine,
+    MachineStatus,
+    Hopper,
+    HopperStatus,
+    Ingredient
+)
 
 __all__ = [
-    "User", "UserRole", "UserRoleAssignment",
-    "Machine", 
-    "Hopper", 
-    "Ingredient", 
-    "HopperOperation"
+    'Base',
+    'TimestampMixin',
+    'User',
+    'UserRole',
+    'user_roles_table',
+    'Machine',
+    'MachineStatus',
+    'Hopper',
+    'HopperStatus',
+    'Ingredient'
 ]
